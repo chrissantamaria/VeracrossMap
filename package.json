@@ -1,0 +1,17 @@
+{
+  "name": "veracrossmap",
+  "version": "1.0.0",
+  "description": "Geographic display of student information from Veracross",
+  "main": "server.js",
+  "dependencies": {
+    "@google/maps": "^0.4.6",
+    "puppeteer": "^1.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Chris Santamaria",
+  "license": "ISC"
+}

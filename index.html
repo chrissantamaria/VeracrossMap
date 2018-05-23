@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>VeracrossMap</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
+
+    <style>
+        #map,
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #floating-panel {
+            position: absolute;
+            top: 10px;
+            left: 25%;
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            border: 1px solid #999;
+            text-align: center;
+            font-family: 'Roboto', 'sans-serif';
+            line-height: 30px;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="floating-panel">
+        <button onclick="togglePin()">Pin</button>
+        <button onclick="togglePhoto()">Photo</button>
+        <button onclick="toggleHeatmap()">Heatmap</button>
+    </div>
+    <div id="map"></div>
+    <script>
+        var plotMode = "heatmap";
+        var map;
+        var heatmap;
+
+        function togglePin() {
+            plotMode = "pin";
+            initMap();
+        }
+        function togglePhoto() {
+            plotMode = "photo";
+            initMap();
+        }
+        function toggleHeatmap() {
+            plotMode = "heatmap";
+            initMap();
+        }
+
+        swal({
+            title: "Welcome to VeracrossMap!",
+            text: "This is a graphical display of student data collected from Veracross."
+                + "This site is hosted locally at Lawrenceville, so your data is still contained within our campus."
+                + "To learn more, <a href='#'>visit the project's GitHub.</a>",
+            html: true
+        });
+
+        // Run by the Maps API when the page is loaded
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 37, lng: -81 },
+                zoom: 5
+            });
+            // Creating a constant marker at campuss
+            new google.maps.Marker({
+                position: { lat: 40.294489, lng: -74.729069 },
+                zIndex: 1000,
+                icon: {
+                    url: 'assets/lvilleLogo.png',
+                    size: new google.maps.Size(500, 500),
+                    scaledSize: new google.maps.Size(70, 70),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(35, 35)
+                },
+                map: map
+            });
+
+            // Iterating through each student and plotting it based on the specified mode
+            $.getJSON("students.json", students => {
+                if (plotMode == "heatmap") {
+                    heatmap = new google.maps.visualization.HeatmapLayer({
+                        radius: 28,
+                        opacity: 0.7,
+                        maxIntensity: 6,
+                        data: students.map(student => {
+                            try {
+                                return new google.maps.LatLng(student.location.lat, student.location.lng);
+                            } catch (e) {
+                                // console.log("Could not create heatmap point for student " + student.name);
+                            }
+                        }),
+                        map: map,
+                    });
+                    // Both pin and photo use a Marker object and can be grouped together
+                } else {
+                    Promise.all(students.map(student => {
+                        return new Promise((resolve, reject) => {
+                            if (!student.location) reject("No location found for student " + student.name);
+                            if (plotMode == "pin") var icon = null;
+                            else if (plotMode == "photo") {
+                                var icon = {
+                                    // Using the stored ID number to pull the student photo from the collection
+                                    url: 'photos/' + student.photo,
+                                    size: new google.maps.Size(120, 150),
+                                    scaledSize: new google.maps.Size(30, 38),
+                                    origin: new google.maps.Point(0, 0),
+                                    anchor: new google.maps.Point(15, 19)
+                                }
+                            }
+                            var studentMarker = new google.maps.Marker({
+                                // Pulling the geocoded location from the student object
+                                position: student.location,
+                                icon: icon,
+                                map: map
+                            });
+
+                            // Creating the pop-up box for each student containing their basic info
+                            var studentInfo = new google.maps.InfoWindow({
+                                content:
+                                    '<div style="text-align: center;">'
+                                    + '<h1>' + student.name + '</h1>'
+                                    + '<h3>' + student.form + '</h3>'
+                                    + '<img src = "photos/' + student.photo + '" style = "width:120px;height:150px">'
+                                    + "</div>"
+                            })
+
+                            // Adding hover events for the pop-up boxes
+                            studentMarker.addListener('mouseover', function () {
+                                studentInfo.open(map, studentMarker);
+                            });
+                            studentMarker.addListener('mouseout', function () {
+                                studentInfo.close(map, studentMarker);
+                            });
+                            resolve();
+                        }).catch(e => {
+                            // console.log(e);
+                        }
+                        );
+                    }));
+                }
+            });
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=API_KEY&callback=initMap&libraries=visualization" async defer></script>
+</body>
+
+</html>
