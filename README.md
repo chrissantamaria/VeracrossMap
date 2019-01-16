@@ -1,5 +1,7 @@
 # VeracrossMap
 
+#### This project is depreciated and will likely not work with the current version of Veracross. Please use only for reference.
+
 ## Overview
 
 VeracrossMap is a geographic display of student data from the school management platform Veracross. The project utilizes Puppeteer to run a headless browser and act like a real user to access the Veracross directory page and strip student data and photos. The Google Maps API is then used to geocode addresses and eventually display them on a map to view student distribution.
